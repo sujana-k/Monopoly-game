@@ -28,9 +28,8 @@ public class Controller {
 	}
 
 	@PostMapping("/roll-dies/{id}")
-	public String rollDies(@RequestBody GamesModel gamesModel, @RequestBody PlacesModel placesModel,
-			@RequestBody PlayersModel playersModel, @PathVariable int id) {
-		return monoService.rollDie(placesModel, gamesModel, playersModel);
+	public String rollDies( @PathVariable String name) {
+		return monoService.rollDie(name);
 	}
 
 }

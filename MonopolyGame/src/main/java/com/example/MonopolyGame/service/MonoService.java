@@ -10,6 +10,6 @@ public interface MonoService {
 
 	public String joinGame(PlayersModel playersModel);
 
-	public String rollDie(PlacesModel placesModel, GamesModel gamesModel, PlayersModel playersModel);
+	public String rollDie(String name);
 
 }

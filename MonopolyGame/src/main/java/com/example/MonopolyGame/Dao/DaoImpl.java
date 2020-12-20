@@ -58,55 +58,81 @@ public class DaoImpl implements Dao {
 	}
 
 	@Override
-	public String rollDie(PlacesModel placesModel, GamesModel gamesModel, PlayersModel playersModel) {
-		String update = "update table games set current_player_id=" + playersModel.getId();
-		jdbcTemplate.update(update);
-		String getPlayerId = "select id from players where name='" + playersModel.getName() + "'"
-				+ "and game_id=game_id";
+	public String rollDie(String name) {
+		//Get player Id
+		String getPlayerId = "select id from players where name='" + name+"'" ;
 		int playerId = jdbcTemplate.queryForObject(getPlayerId, Integer.class);
+		int gameId = jdbcTemplate.queryForObject(game_Id, Integer.class);
+		String strPlayer2 = "select id from players where id!=" + playerId +"and game_id="+gameId;
+		int player2 = jdbcTemplate.queryForObject(strPlayer2, Integer.class);
+		
+		//check the current player
+		 String checkTurn = "select playerId  from games where current_turn_playerId = "+playerId;
+		 int checkTurnId = jdbcTemplate.queryForObject(checkTurn, Integer.class);
+		 if (checkTurnId == playerId) {
+			 //roll dies
+			 Random rand = new Random();
+			 	int die1 = rand.nextInt(6);
+				int die2 = rand.nextInt(6);
+				int diesRolled=die1+die2;
+				String message="die rolled "+diesRolled;
 
-		Random rand = new Random();
-
-		int die1 = rand.nextInt(6);
-		int die2 = rand.nextInt(6);
-		String checkTurn = "select count(*) from games where active=1 and current_turn_id=" + playerId;
-		int check = jdbcTemplate.queryForObject(checkTurn, Integer.class);
-		if (check == 0) {
-			return "It is not " + playersModel.getId() + " your turn";
-		}
-		String currentPosition = "select current_position from players where id=" + playersModel.getId();
-		int cur_pos = jdbcTemplate.queryForObject(currentPosition, Integer.class);
-		String currentCash = "select current_cash from players where id=" + playersModel.getId();
-		int cur_cash = jdbcTemplate.queryForObject(currentCash, Integer.class);
-		if (cur_pos + die1 + die2 > 11) {
-			cur_cash += 200;
-			cur_pos = cur_pos + die1 + die2 - 11;
-		} else
-			cur_pos = cur_pos + die1 + die2;
-
-		String isPurchased = "select  is_purchased  from places where id=" + cur_pos;
-		String rentPrice = "select   rent_price from places where id=" + cur_pos;
-		String buyPrice = "select   buy_price from places where id=" + cur_pos;
-		int is_Purchased = jdbcTemplate.queryForObject(isPurchased, Integer.class);
-		int rent_Price = jdbcTemplate.queryForObject(rentPrice, Integer.class);
-		int buy_Price = jdbcTemplate.queryForObject(buyPrice, Integer.class);
-		if (is_Purchased == 1) {
-			cur_cash = cur_cash - rent_Price;
-			String upDate1 = "update table players set current_cash+=rent_price where id=owned_by_player_id";
-			jdbcTemplate.update(upDate1);
-		} else {
-			cur_cash = cur_cash - buy_Price;
-		}
-		String update2 = "update table players set current_position=cur_pos, current_cash=cur_cash where id=id";
-		jdbcTemplate.update(update2);
-		if (cur_cash == 0) {
-			String update3 = "update table games set active=0";
-			jdbcTemplate.update(update3);
-			String update4 = "update table places set is_purchased=0 and owned_by_player_id=null";
-			jdbcTemplate.update(update4);
-			return "game_over";
-		} else
-			return "continue playing";
+				String currentPosition = "select current_position from players where id=" + playerId;
+				int cur_pos = jdbcTemplate.queryForObject(currentPosition, Integer.class);
+				String currentCash = "select current_cash from players where id=" + playerId;
+				int cur_cash = jdbcTemplate.queryForObject(currentCash, Integer.class);
+				if (cur_pos + diesRolled > 11) {
+					message=message+" you crossed start position so you gain $200 ";
+					cur_cash += 200;
+					cur_pos = cur_pos + diesRolled - 11;
+				} else
+					cur_pos = cur_pos + diesRolled;
+				
+				//place property check
+				String propertyName = "select  name from places where id=" + cur_pos;
+				String isPurchased = "select  is_purchased  from places where id=" + cur_pos;
+				String rentPrice = "select   rent_price from places where id=" + cur_pos;
+				String buyPrice = "select   buy_price from places where id=" + cur_pos;
+				int is_Purchased = jdbcTemplate.queryForObject(isPurchased, Integer.class);
+				int rent_Price = jdbcTemplate.queryForObject(rentPrice, Integer.class);
+				int buy_Price = jdbcTemplate.queryForObject(buyPrice, Integer.class);
+				String propName=jdbcTemplate.queryForObject(propertyName, String.class);
+				 message=message+" and landed on place "+propName;
+				if (is_Purchased == 1) {
+					message=message+" , paid rent $"+rent_Price;
+					cur_cash = cur_cash - rent_Price;
+					//Adding rent to the owner
+					String upDate1 = "update table players set current_cash+="+rent_Price+" where id=owned_by_player_id";
+					jdbcTemplate.update(upDate1);
+					
+				} else {
+					message=message+" , unclaimed place and hence bought for $"+buy_Price;
+					cur_cash = cur_cash - buy_Price;
+					
+				}
+				message=message+", remaining balance $"+cur_cash;
+				//updating cash for current player
+				String upDate1 = "update table players set current_cash="+cur_cash+" where id="+playerId;
+				jdbcTemplate.update(upDate1);
+				String update = "update table games set current_player_id=" + player2;
+				jdbcTemplate.update(update);
+				if(cur_cash<=0) {
+					message=message+" game over, you lost";
+					
+					//reseting the game players and places
+					String update3 = "update table games set active=0";
+					jdbcTemplate.update(update3);
+					String update4 = "update table places set is_purchased=0 and owned_by_player_id=null";
+					jdbcTemplate.update(update4);
+					String update5="update table players set game_id=0";
+					jdbcTemplate.update(update5);
+				}
+				return message;
+				
+			}else
+				return "It is not   your turn- "+name;
+		
+		
 
 	}
 

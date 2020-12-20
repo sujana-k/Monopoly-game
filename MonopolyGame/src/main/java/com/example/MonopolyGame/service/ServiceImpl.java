@@ -25,9 +25,9 @@ public class ServiceImpl implements MonoService {
 	}
 
 	@Override
-	public String rollDie(PlacesModel placesModel, GamesModel gamesModel, PlayersModel playersModel) {
+	public String rollDie(String name ) {
 
-		return dao.rollDie(placesModel, gamesModel, playersModel);
+		return dao.rollDie(name);
 	}
 
 }
